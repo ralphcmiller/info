@@ -3,63 +3,44 @@
 # Log file path
 LOG_FILE="$HOME/Downloads/bot_runtime.log"
 
-# Generate a random start time between 8 AM and 12 PM
-START_HOUR=$((RANDOM % 4 + 8))  # Random hour between 8 AM and 12 PM
-START_MIN=$((RANDOM % 60))      # Random minute
+while true; do
+  # Testing settings: Quick start and short runtime
+  START_DELAY=$((RANDOM % 60))   # Random delay (0-60 seconds) before starting
+  RUNTIME=$((RANDOM % 120 + 30)) # Random runtime (30-150 seconds)
 
-# Random runtime duration between 8 to 12 hours
-MAX_RUNTIME=$((22 * 60))        # 10 PM in minutes
-START_MINUTES=$((START_HOUR * 60 + START_MIN))
-RUNTIME_MIN=$((RANDOM % 241 + 480))  # Random duration (8-12 hours in minutes)
-STOP_MINUTES=$((START_MINUTES + RUNTIME_MIN))
+  # Get the current time and calculate start/stop times
+  CURRENT_TIME=$(date '+%s') # Current time as epoch seconds
+  START_TIME=$(date -d "+$START_DELAY seconds" '+%s')
+  STOP_TIME=$(($START_TIME + $RUNTIME))
 
-# If the stop time hits 10 PM, add 1-30 random minutes
-if [ "$STOP_MINUTES" -ge "$MAX_RUNTIME" ]; then
-  EXTRA_MIN=$((RANDOM % 30 + 1))  # Randomly add 1-30 minutes
-  STOP_MINUTES=$((MAX_RUNTIME + EXTRA_MIN))
-fi
+  # Log start and stop times
+  echo "========================" >> "$LOG_FILE"
+  echo "Start Time: $(date -d @$START_TIME '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+  echo "Stop Time: $(date -d @$STOP_TIME '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+  echo "Total Runtime: $((RUNTIME / 60)) minutes $((RUNTIME % 60)) seconds" >> "$LOG_FILE"
 
-STOP_HOUR=$((STOP_MINUTES / 60))
-STOP_MIN=$((STOP_MINUTES % 60))
+  # Sleep until the start time
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting $START_DELAY seconds until start time..." >> "$LOG_FILE"
+  sleep "$START_DELAY"
 
-# Format start and stop times
-START_TIME=$(printf "%02d:%02d" "$START_HOUR" "$START_MIN")
-STOP_TIME=$(printf "%02d:%02d" "$STOP_HOUR" "$STOP_MIN")
+  # Start the bot
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting bot for testing..." >> "$LOG_FILE"
+  Xvfb :99 -screen 0 1024x768x24 &
+  XVFB_PID=$!
+  export DISPLAY=:99
+  java -Xmx255M -jar $HOME/Downloads/DBLauncher.jar -script 'P2P Master AI' -world world -username dbname -password dbpass -account zezima -params default >> "$LOG_FILE" 2>&1 &
+  JAVA_PID=$!
 
-# Calculate total runtime in hours and minutes
-TOTAL_RUNTIME_HOURS=$((RUNTIME_MIN / 60))
-TOTAL_RUNTIME_MINUTES=$((RUNTIME_MIN % 60))
-TOTAL_RUNTIME=$(printf "%02d:%02d" "$TOTAL_RUNTIME_HOURS" "$TOTAL_RUNTIME_MINUTES")
+  # Run for the allotted runtime
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bot running for $RUNTIME seconds..." >> "$LOG_FILE"
+  sleep "$RUNTIME"
 
-# Log start and stop times, and total runtime
-echo "========================" >> "$LOG_FILE"
-echo "Date: $(date '+%Y-%m-%d')" >> "$LOG_FILE"
-echo "Start Time: $START_TIME" >> "$LOG_FILE"
-echo "Stop Time: $STOP_TIME" >> "$LOG_FILE"
-echo "Total Runtime: $TOTAL_RUNTIME" >> "$LOG_FILE"
+  # Stop the bot and clean up
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Stopping bot..." >> "$LOG_FILE"
+  kill "$JAVA_PID" 2>/dev/null
+  kill "$XVFB_PID" 2>/dev/null
 
-# Wait until the current time is at or greater than START_TIME
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting until $START_TIME to start the bot..." >> "$LOG_FILE"
-while [[ "$(date +%H:%M)" < "$START_TIME" ]]; do
-  sleep 30  # Check every 30 seconds
+  # End the loop for testing
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Testing complete. Exiting script..." >> "$LOG_FILE"
+  break
 done
-
-# Start the bot and log runtime
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting bot..." >> "$LOG_FILE"
-java -Xmx255M -jar $HOME/Downloads/DBLauncher.jar -script 'P2P Master AI' -world world -username dbname -password dbpass -account zezima -params default >> "$LOG_FILE" 2>&1 &
-
-# Schedule the bot stop
-STOP_COMMAND="pkill -f $HOME/Downloads/DBLauncher.jar"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduling bot stop at $STOP_TIME..." >> "$LOG_FILE"
-echo "$STOP_COMMAND" | at "$STOP_TIME"
-
-
-
-[Service]
-Environment="DISPLAY=:0"
-Environment="XAUTHORITY=/home/your-username/.Xauthority"
-ExecStart=/home/your-username/Downloads/random_bot_scheduler.sh
-WorkingDirectory=/home/your-username/Downloads
-StandardOutput=append:/home/your-username/Downloads/random_bot.log
-StandardError=append:/home/your-username/Downloads/random_bot.log
-
