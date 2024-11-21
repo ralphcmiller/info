@@ -3,14 +3,6 @@
 # Log file path
 LOG_FILE="$HOME/Downloads/bot_runtime.log"
 
-# Path to the JAR file
-JAR_PATH="$HOME/Downloads/DBLauncher.jar"
-
-# Credentials
-USER_NAME=""
-PASS=""
-PROFILE="
-
 # Generate a random start time between 8 AM and 12 PM
 START_HOUR=$((RANDOM % 4 + 8))  # Random hour between 8 AM and 12 PM
 START_MIN=$((RANDOM % 60))      # Random minute
@@ -39,9 +31,6 @@ TOTAL_RUNTIME_HOURS=$((RUNTIME_MIN / 60))
 TOTAL_RUNTIME_MINUTES=$((RUNTIME_MIN % 60))
 TOTAL_RUNTIME=$(printf "%02d:%02d" "$TOTAL_RUNTIME_HOURS" "$TOTAL_RUNTIME_MINUTES")
 
-# Command to run
-COMMAND="java -Xmx255M -jar $JAR_PATH -script 'P2P Master AI' -world world -username $USER_NAME -password $PASS -account $PROFILE -params default"
-
 # Log start and stop times, and total runtime
 echo "========================" >> "$LOG_FILE"
 echo "Date: $(date '+%Y-%m-%d')" >> "$LOG_FILE"
@@ -49,27 +38,17 @@ echo "Start Time: $START_TIME" >> "$LOG_FILE"
 echo "Stop Time: $STOP_TIME" >> "$LOG_FILE"
 echo "Total Runtime: $TOTAL_RUNTIME" >> "$LOG_FILE"
 
-# Run the bot and log its runtime output
-{
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting bot..."
-  $COMMAND
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bot stopped."
-} >> "$LOG_FILE" 2>&1 &
+# Wait until the current time is at or greater than START_TIME
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting until $START_TIME to start the bot..." >> "$LOG_FILE"
+while [[ "$(date +%H:%M)" < "$START_TIME" ]]; do
+  sleep 30  # Check every 30 seconds
+done
+
+# Start the bot and log runtime
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting bot..." >> "$LOG_FILE"
+java -Xmx255M -jar $HOME/Downloads/DBLauncher.jar -script 'P2P Master AI' -world world -username dbname -password dbpass -account zezima -params default >> "$LOG_FILE" 2>&1 &
 
 # Schedule the bot stop
-STOP_COMMAND="pkill -f '$JAR_PATH'"
+STOP_COMMAND="pkill -f $HOME/Downloads/DBLauncher.jar"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduling bot stop at $STOP_TIME..." >> "$LOG_FILE"
 echo "$STOP_COMMAND" | at "$STOP_TIME"
-
-
-
-
-
-
-chmod +x random_bot_scheduler.sh
-crontab -e
-0 0 * * * /path/to/random_bot_scheduler.sh
-
-
-
-
-
