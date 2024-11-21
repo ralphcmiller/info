@@ -52,3 +52,14 @@ java -Xmx255M -jar $HOME/Downloads/DBLauncher.jar -script 'P2P Master AI' -world
 STOP_COMMAND="pkill -f $HOME/Downloads/DBLauncher.jar"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scheduling bot stop at $STOP_TIME..." >> "$LOG_FILE"
 echo "$STOP_COMMAND" | at "$STOP_TIME"
+
+
+
+[Service]
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/your-username/.Xauthority"
+ExecStart=/home/your-username/Downloads/random_bot_scheduler.sh
+WorkingDirectory=/home/your-username/Downloads
+StandardOutput=append:/home/your-username/Downloads/random_bot.log
+StandardError=append:/home/your-username/Downloads/random_bot.log
+
